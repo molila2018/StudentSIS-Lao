@@ -1,0 +1,59 @@
+<Application x:Class="StudentSIS.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="Views/LoginWindow.xaml">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Styles/Colors.xaml"/>
+        <ResourceDictionary Source="Styles/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+
+      <!-- ============================================================
+           System-wide typography
+           Phetsarath OT renders Lao glyphs; Times New Roman renders
+           Latin/digits.  WPF treats the comma-separated list as a
+           font-fallback chain: each character is rendered using the
+           first font in the list that has a glyph for it.  If the user's
+           machine doesn't have Phetsarath OT, WPF falls back to
+           Times New Roman (which has acceptable Lao glyphs on Win 10+),
+           then Segoe UI (last resort).
+           ============================================================ -->
+      <FontFamily x:Key="AppFont">Phetsarath OT, Times New Roman, Segoe UI</FontFamily>
+
+      <!-- Apply the app font to every control in the visual tree by default.
+           Explicit FontFamily setters on individual controls still win,
+           so monospaced fields (clock, error TextBox) remain unaffected. -->
+      <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type TextBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type PasswordBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type ComboBoxItem}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type CheckBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type RadioButton}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type Label}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type DatePicker}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+      <Style TargetType="{x:Type TabItem}">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+      </Style>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

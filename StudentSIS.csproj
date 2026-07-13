@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>StudentSIS_Lao</AssemblyName>
+    <RootNamespace>StudentSIS</RootNamespace>
+    <!-- Version stamp — also referenced by the Inno Setup installer script. -->
+    <Version>2.0.0</Version>
+    <FileVersion>2.0.0.0</FileVersion>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <Company> Secondary School</Company>
+    <Product>StudentSIS Lao</Product>
+    <Description>Student Information System for  Secondary School </Description>
+    <Copyright>© Buekthong Secondary School</Copyright>
+    <!-- Icon embedded in the .exe — shows in Explorer, Alt+Tab, taskbar
+         when the app has no owner window (e.g. LoginWindow at startup). -->
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <!-- Don't compile the integration-test harness or installer-build artifacts
+       into the WPF app. -->
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+    <None Remove="tests\**\*" />
+    <EmbeddedResource Remove="tests\**\*" />
+    <Page Remove="tests\**\*" />
+    <Compile Remove="installer\**\*.cs" />
+    <None Remove="installer\**\*" />
+    <Page Remove="installer\**\*" />
+    <Compile Remove="publish\**\*.cs" />
+    <None Remove="publish\**\*" />
+    <Page Remove="publish\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+    <PackageReference Include="iTextSharp" Version="5.5.13.3" />
+    <!-- ClosedXML for native .xlsx output (monthly score sheet report). -->
+    <PackageReference Include="ClosedXML" Version="0.102.3" />
+    <!-- OpenXML SDK for filling the ໃບສັນຍາ Word template.
+         Pinned to 2.20.0 because ClosedXML 0.102.3 was built against 2.x —
+         3.x changed IdPartPair from a class to a record struct, which throws
+         "Could not load type 'IdPartPair' due to value type mismatch" at runtime. -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.20.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Templates ship next to the EXE. -->
+    <None Update="Templates\ໃບສັນຍາ.docx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates\ໃບຄະແນນ.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates\ລີພອດຄະແນນບຸກຄົນ.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates\ລາຍງານປະຫວັດນັກຮຽນ.docx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Icon resource ships next to the exe so window Icon="Assets/app-icon.ico"
+         URIs still resolve at runtime (WPF pack-URIs also work). -->
+    <None Update="Assets\app-icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Resource Include="Assets\app-icon.ico"/>
+  </ItemGroup>
+</Project>

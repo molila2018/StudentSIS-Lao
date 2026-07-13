@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>StudentSIS.IntegrationTests</RootNamespace>
+    <!-- Don't accidentally pick up the parent WPF project's files. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
+    <PackageReference Include="ClosedXML" Version="0.102.3" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.20.0" />
+    <PackageReference Include="iTextSharp" Version="5.5.13.3" />
+    <!-- Required by iTextSharp 5 on .NET Core/8: registers windows-1252 etc.
+         Without this, BaseFont.CreateFont fails on every TTF load. -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Compile the live production DB.cs directly so tests exercise real code. -->
+    <Compile Include="..\..\Data\DB.cs" />
+    <Compile Include="..\..\Data\ExcelImport.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Inspect.cs" />
+    <Compile Include="Repack.cs" />
+    <Compile Include="UserManual.cs" />
+  </ItemGroup>
+</Project>

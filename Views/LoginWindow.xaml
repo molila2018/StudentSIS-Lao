@@ -1,0 +1,114 @@
+<Window x:Class="StudentSIS.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ເຂົ້າໃຊ້ລະບົບ"
+        Icon="/Assets/app-icon.ico"
+        Width="460" Height="520"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="{DynamicResource AppFont}"
+        Background="{StaticResource LoginBgBrush}">
+
+  <Grid>
+    <Border Width="380" VerticalAlignment="Center" HorizontalAlignment="Center"
+            CornerRadius="4" Padding="32,28"
+            Background="{StaticResource LoginCardBrush}"
+            BorderBrush="{StaticResource LoginBorderBrush}" BorderThickness="1"
+            SnapsToDevicePixels="True">
+
+      <StackPanel>
+        <!-- Logo -->
+        <Border Width="72" Height="72" CornerRadius="4"
+                Background="{StaticResource PrimaryBrush}"
+                HorizontalAlignment="Center" Margin="0,0,0,18"
+                SnapsToDevicePixels="True">
+          <TextBlock Text="🎓" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Headings -->
+        <TextBlock Text="ລະບົບຄຸ້ມຄອງຂໍ້ມູນນັກຮຽນ"
+                   FontSize="19" FontWeight="SemiBold" Foreground="White"
+                   HorizontalAlignment="Center" Margin="0,0,0,2"/>
+        <TextBlock Text="Student Information System"
+                   FontSize="11" Foreground="{StaticResource SidebarMutedBrush}"
+                   HorizontalAlignment="Center" Margin="0,0,0,28"/>
+
+        <!-- Username -->
+        <TextBlock Text="ຊື່ຜູ້ໃຊ້" Foreground="{StaticResource SidebarSubtleBrush}"
+                   FontSize="12" FontWeight="Medium" Margin="0,0,0,6"/>
+        <TextBox x:Name="TxtUsername" Height="38"
+                 Background="{StaticResource LoginInputBrush}" Foreground="White"
+                 BorderBrush="{StaticResource LoginBorderBrush}" BorderThickness="1"
+                 CaretBrush="White" Margin="0,0,0,14"
+                 FontSize="13" Padding="12,0" VerticalContentAlignment="Center"
+                 SnapsToDevicePixels="True"
+                 KeyDown="Input_KeyDown">
+          <TextBox.Template>
+            <ControlTemplate TargetType="TextBox">
+              <Border x:Name="bd" Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="4" SnapsToDevicePixels="True"
+                      Padding="{TemplateBinding Padding}">
+                <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                  <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource LoginAccentBrush}"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </TextBox.Template>
+        </TextBox>
+
+        <!-- Password -->
+        <TextBlock Text="ລະຫັດຜ່ານ" Foreground="{StaticResource SidebarSubtleBrush}"
+                   FontSize="12" FontWeight="Medium" Margin="0,0,0,6"/>
+        <Border CornerRadius="4"
+                Background="{StaticResource LoginInputBrush}"
+                BorderBrush="{StaticResource LoginBorderBrush}" BorderThickness="1"
+                Margin="0,0,0,8" SnapsToDevicePixels="True">
+          <PasswordBox x:Name="TxtPassword" Height="36"
+                       Background="Transparent" Foreground="White"
+                       BorderBrush="Transparent" BorderThickness="0"
+                       CaretBrush="White"
+                       FontSize="13" Padding="12,0"
+                       KeyDown="Password_KeyDown"/>
+        </Border>
+
+        <TextBlock x:Name="LblError" Text="" Foreground="#F87171"
+                   FontSize="12" FontWeight="Medium" Margin="0,4,0,12" Visibility="Collapsed"/>
+
+        <!-- Submit -->
+        <Button x:Name="BtnLogin" Height="42" Content="ເຂົ້າໃຊ້ລະບົບ"
+                FontSize="14" FontWeight="SemiBold" Foreground="White"
+                Background="{StaticResource PrimaryBrush}"
+                BorderThickness="0" Cursor="Hand" Margin="0,4,0,0" Click="BtnLogin_Click"
+                SnapsToDevicePixels="True">
+          <Button.Template>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="bd" Background="{TemplateBinding Background}"
+                      CornerRadius="4" SnapsToDevicePixels="True">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.74"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Button.Template>
+        </Button>
+
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

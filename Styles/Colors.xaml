@@ -1,0 +1,50 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ===== Primary palette ===== -->
+  <SolidColorBrush x:Key="PrimaryBrush"       Color="#1B4F8A"/>
+  <SolidColorBrush x:Key="PrimarySoftBrush"   Color="#2D6CB1"/>
+  <SolidColorBrush x:Key="PrimaryLightBrush"  Color="#D6E4F7"/>
+  <SolidColorBrush x:Key="PrimaryDarkBrush"   Color="#0E3260"/>
+
+  <!-- ===== Status colors ===== -->
+  <SolidColorBrush x:Key="SuccessBrush"       Color="#15803D"/>
+  <SolidColorBrush x:Key="SuccessSoftBrush"   Color="#22A65A"/>
+  <SolidColorBrush x:Key="DangerBrush"        Color="#B91C1C"/>
+  <SolidColorBrush x:Key="DangerSoftBrush"    Color="#DC2626"/>
+  <SolidColorBrush x:Key="WarningBrush"       Color="#B45309"/>
+  <SolidColorBrush x:Key="WarningSoftBrush"   Color="#D97706"/>
+  <SolidColorBrush x:Key="SecondaryBrush"     Color="#5B21B6"/>
+  <SolidColorBrush x:Key="InfoBrush"          Color="#0E7490"/>
+  <SolidColorBrush x:Key="NeutralBrush"       Color="#4B5563"/>
+
+  <!-- ===== Backgrounds ===== -->
+  <SolidColorBrush x:Key="BgPageBrush"        Color="#F4F6FA"/>
+  <SolidColorBrush x:Key="BgCardBrush"        Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="BgHoverBrush"       Color="#F1F5F9"/>
+  <SolidColorBrush x:Key="BgSubtleBrush"      Color="#FAFBFC"/>
+
+  <!-- ===== Text ===== -->
+  <SolidColorBrush x:Key="TextPrimaryBrush"   Color="#0F172A"/>
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="#64748B"/>
+  <SolidColorBrush x:Key="TextMutedBrush"     Color="#94A3B8"/>
+
+  <!-- ===== Borders ===== -->
+  <SolidColorBrush x:Key="BorderBrush_"       Color="#E5E7EB"/>
+  <SolidColorBrush x:Key="BorderHoverBrush"   Color="#CBD5E1"/>
+
+  <!-- ===== Sidebar / dark surfaces (FLAT) ===== -->
+  <SolidColorBrush x:Key="SidebarBrush"       Color="#11253A"/>
+  <SolidColorBrush x:Key="SidebarBorderBrush" Color="#1E3550"/>
+  <SolidColorBrush x:Key="SidebarHoverBrush"  Color="#1B3651"/>
+  <SolidColorBrush x:Key="SidebarMutedBrush"  Color="#5D7693"/>
+  <SolidColorBrush x:Key="SidebarSubtleBrush" Color="#A8B5C5"/>
+
+  <!-- Login screen (FLAT) -->
+  <SolidColorBrush x:Key="LoginBgBrush"       Color="#0F1F33"/>
+  <SolidColorBrush x:Key="LoginCardBrush"     Color="#15293F"/>
+  <SolidColorBrush x:Key="LoginInputBrush"    Color="#0B1A2A"/>
+  <SolidColorBrush x:Key="LoginBorderBrush"   Color="#2D4F70"/>
+  <SolidColorBrush x:Key="LoginAccentBrush"   Color="#7CB7F0"/>
+
+</ResourceDictionary>

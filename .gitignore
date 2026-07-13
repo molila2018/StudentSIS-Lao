@@ -1,0 +1,72 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  StudentSIS Lao — .gitignore
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── DATABASE (PII: student personal data — NEVER commit) ──
+sis_lao.db
+sis_lao.db-journal
+sis_lao.db-wal
+sis_lao.db-shm
+*.db-backup
+
+# ── .NET build output ──
+bin/
+obj/
+publish/
+installer-output/
+
+# ── Visual Studio local files ──
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ── Rider / VS Code ──
+.idea/
+.vscode/
+*.swp
+
+# ── NuGet ──
+packages/
+*.nupkg
+*.snupkg
+.nuget/
+
+# ── Windows ──
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── macOS (in case someone clones on Mac) ──
+.DS_Store
+
+# ── OS temp / logs ──
+*.log
+*.tmp
+*.bak
+
+# ── Scratchpad (Claude Code temp files if any leak in) ──
+scratchpad/
+
+# ── Claude Code local prefs (per-user tool settings) ──
+.claude/
+
+# ── Loose test-output files at project root
+#    (canonical copies of these templates live in Templates/ — commit
+#    those; the root ones are stray exports / work-in-progress and
+#    shouldn't ship in the repo). Only matches at repo root, not subdirs.
+/report *.xlsx
+/templete*.xlsx
+/ລາຍງານປະຫວັດນັກຮຽນ.docx
+/ລີພອດຄະແນນບຸກຄົນ.xlsx
+
+# ── Explicitly KEEP source assets that .NET gitignore templates
+#    sometimes over-eagerly exclude:
+!Templates/*.docx
+!Templates/*.xlsx
+!Assets/*.png
+!Assets/*.ico
+!installer/*.iss
+!installer/*.cmd
+!installer/User-Manual.pdf
