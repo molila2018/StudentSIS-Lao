@@ -9,7 +9,22 @@ using System.Text;
 
 namespace StudentSIS.Data
 {
-    public static class DB
+    // ── Partial class layout ─────────────────────────────────────
+    // DB is split across domain files so each area stays small and
+    // findable. This file is the CORE: connection, schema/migrations,
+    // settings cache, calc helpers, and cross-page query helpers.
+    // Page-specific queries live in sibling DB.*.cs files:
+    //   DB.ScoreEntry.cs   score-entry rosters + saves (idx 5, 6)
+    //   DB.Students.cs     student CRUD + roster (idx 2)
+    //   DB.Dashboard.cs    landing-page stats (idx 0)
+    //   DB.ClassHub.cs     grade cards + hub stats (idx 1)
+    //   DB.Enrollment.cs   per-student + batch enrolment (idx 3, 4)
+    //   DB.Promotion.cs    promote / repeat / graduate (idx 8)
+    //   DB.Admin.cs        Subjects · Users · Years · Settings (idx 9-12)
+    //   DB.Reports.cs      ReportPage document data (idx 7)
+    // RULE: View files must never contain SQL — add a named method
+    // in the matching domain file instead.
+    public static partial class DB
     {
         private static readonly string DbPath =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sis_lao.db");
@@ -441,6 +456,10 @@ INSERT OR IGNORE INTO Subjects(SubjectCode,SubjectName,GradeLevel,Semester,Categ
 
         public static void SaveSetting(string key, string value)
         { Exec("INSERT OR REPLACE INTO Settings(Key,Value) VALUES(@k,@v)",null,("@k",key),("@v",value)); LoadSettings(); }
+
+        // Read one Settings value; null when the key doesn't exist.
+        public static string? GetSetting(string key) =>
+            Scalar("SELECT Value FROM Settings WHERE Key=@k", null, ("@k", key))?.ToString();
 
         public static SQLiteConnection Open()
         {

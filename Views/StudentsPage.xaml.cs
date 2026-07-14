@@ -62,23 +62,12 @@ namespace StudentSIS.Views
             string status = CmbStatus?.SelectedItem?.ToString() ?? "ທັງໝົດ";
             string kw     = TxtSearch?.Text.Trim() ?? "";
 
-            var sb = new StringBuilder(@"SELECT StudentID, StudentCode,
-                FirstName||' '||LastName AS FullName, Gender,
-                GradeLevel, ClassRoom, AcademicYear,
-                COALESCE(NULLIF(FatherName,''), NULLIF(MotherName,''), NULLIF(ParentName,''), '') AS ParentName,
-                Status
-                FROM Students WHERE 1=1");
-            var ps = new List<(string, object)>();
-
-            if (!string.IsNullOrEmpty(kw))
-            { sb.Append(" AND (FirstName||LastName LIKE @s OR StudentCode LIKE @s OR FatherName LIKE @s OR MotherName LIKE @s OR ParentName LIKE @s)"); ps.Add(("@s",$"%{kw}%")); }
-            if (grade  != "ທັງໝົດ") { sb.Append(" AND GradeLevel=@g");   ps.Add(("@g", grade)); }
-            if (room   != "ທັງໝົດ") { sb.Append(" AND ClassRoom=@r");    ps.Add(("@r", room)); }
-            if (year   != "ທັງໝົດ") { sb.Append(" AND AcademicYear=@y"); ps.Add(("@y", year)); }
-            if (status != "ທັງໝົດ") { sb.Append(" AND Status=@st");      ps.Add(("@st", status)); }
-            sb.Append(" ORDER BY GradeLevel,ClassRoom,StudentCode");
-
-            var dt = DB.Query(sb.ToString(), null, ps.ToArray());
+            // "ທັງໝົດ" in a combo means no filter → pass null to the query.
+            var dt = DB.SearchStudents(kw,
+                grade  == "ທັງໝົດ" ? null : grade,
+                room   == "ທັງໝົດ" ? null : room,
+                year   == "ທັງໝົດ" ? null : year,
+                status == "ທັງໝົດ" ? null : status);
             _rows = new List<StudentRow>();
             foreach (DataRow r in dt.Rows)
                 _rows.Add(new StudentRow {
@@ -95,7 +84,7 @@ namespace StudentSIS.Views
 
             StudentGrid.ItemsSource = _rows;
             int cnt = _rows.Count;
-            if (_totalCache < 0) _totalCache = DB.ScalarInt("SELECT COUNT(*) FROM Students");
+            if (_totalCache < 0) _totalCache = DB.CountAllStudents();
             if (LblCount  != null) LblCount.Text  = $"ພົບ {cnt} ຄົນ";
             if (LblStatus != null) LblStatus.Text = $"ນັກຮຽນທັງໝົດ {_totalCache} ຄົນ  |  ສະແດງ {cnt} ຄົນ";
         }
@@ -119,15 +108,8 @@ namespace StudentSIS.Views
             }
 
             // Look up the student label + count dependent records that will be cascade-deleted.
-            var info = DB.Query("SELECT StudentCode, FirstName, LastName FROM Students WHERE StudentID=@i", null, ("@i", id));
-            string label = info.Rows.Count > 0
-                ? $"{info.Rows[0]["StudentCode"]} — {info.Rows[0]["FirstName"]} {info.Rows[0]["LastName"]}"
-                : $"ID {id}";
-
-            int enrollCount  = DB.ScalarInt("SELECT COUNT(*) FROM Enrollments WHERE StudentID=@i", null, ("@i", id));
-            int scoreCount   = DB.ScalarInt("SELECT COUNT(*) FROM Scores WHERE EnrollID IN (SELECT EnrollID FROM Enrollments WHERE StudentID=@i)", null, ("@i", id));
-            int monthCount   = DB.ScalarInt("SELECT COUNT(*) FROM MonthlyAssessments WHERE EnrollID IN (SELECT EnrollID FROM Enrollments WHERE StudentID=@i)", null, ("@i", id));
-            int historyCount = DB.ScalarInt("SELECT COUNT(*) FROM GradeHistory WHERE StudentID=@i", null, ("@i", id));
+            string label = DB.GetStudentLabel(id);
+            var (enrollCount, scoreCount, monthCount, historyCount) = DB.GetStudentCascadeCounts(id);
 
             string warn = $"ຕ້ອງການລຶບນັກຮຽນຄົນນີ້ບໍ?\n\n  •  {label}\n";
             if (enrollCount + scoreCount + monthCount + historyCount > 0)
@@ -145,7 +127,7 @@ namespace StudentSIS.Views
 
             try
             {
-                DB.Exec("DELETE FROM Students WHERE StudentID=@i", null, ("@i", id));
+                DB.DeleteStudent(id);
                 DB.Log("DelStudent", label);
                 _totalCache = -1;
                 Load();

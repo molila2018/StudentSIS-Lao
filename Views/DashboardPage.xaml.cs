@@ -17,20 +17,12 @@ namespace StudentSIS.Views
 
         private void Load()
         {
-            TxtTotal.Text  = DB.ScalarInt("SELECT COUNT(*) FROM Students").ToString();
-            TxtActive.Text = DB.ScalarInt("SELECT COUNT(*) FROM Students WHERE Status='ກຳລັງຮຽນ'").ToString();
-            TxtSubj.Text   = DB.ScalarInt("SELECT COUNT(*) FROM Subjects").ToString();
-            // Fail count excludes ຄຸນສົມບັດ (CHA1) and ແຮງງານ (LAB1) — these are
-            // evaluation-only and never contribute to pass/fail.
-            TxtFail.Text   = DB.ScalarInt(
-                "SELECT COUNT(DISTINCT e.StudentID) FROM Enrollments e " +
-                "JOIN Subjects sub ON sub.SubjectID=e.SubjectID " +
-                "JOIN Scores sc ON sc.EnrollID=e.EnrollID " +
-                "WHERE sc.TotalScore<@p AND e.AcademicYear=@y AND e.Semester=@sm " +
-                "  AND sub.SubjectCode NOT IN ('CHA1','LAB1')",
-                null, ("@p", DB.PassScore), ("@y", DB.CurrentYear), ("@sm", DB.CurrentSem)).ToString();
+            TxtTotal.Text  = DB.CountAllStudents().ToString();
+            TxtActive.Text = DB.CountActiveStudents().ToString();
+            TxtSubj.Text   = DB.CountSubjects().ToString();
+            TxtFail.Text   = DB.CountFailingStudents().ToString();
 
-            var gdt = DB.Query("SELECT GradeLevel, COUNT(*) AS Count, SUM(CASE Status WHEN 'ກຳລັງຮຽນ' THEN 1 ELSE 0 END) AS Active FROM Students GROUP BY GradeLevel ORDER BY GradeLevel");
+            var gdt = DB.GetStudentCountsByGrade();
             var rows = new List<GradeRow>();
             _chart.Clear();
             Color[] pal = { Color.FromRgb(27,79,138), Color.FromRgb(21,128,61), Color.FromRgb(107,62,160),
@@ -43,7 +35,7 @@ namespace StudentSIS.Views
             }
             GradeTable.ItemsSource = rows;
 
-            var adt = DB.Query("SELECT Title, CreatedAt FROM Announcements ORDER BY AnnID DESC LIMIT 5");
+            var adt = DB.GetRecentAnnouncements();
             var anns = new List<AnnRow>();
             foreach (DataRow r in adt.Rows) anns.Add(new AnnRow { Title = r["Title"].ToString()!, CreatedAt = r["CreatedAt"].ToString()! });
             AnnList.ItemsSource = anns;

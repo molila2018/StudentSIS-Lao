@@ -17,9 +17,9 @@
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Compile the live production DB.cs directly so tests exercise real code. -->
-    <Compile Include="..\..\Data\DB.cs" />
-    <Compile Include="..\..\Data\ExcelImport.cs" />
+    <!-- Compile the live production Data layer directly so tests exercise
+         real code. Wildcard picks up every DB.*.cs domain partial too. -->
+    <Compile Include="..\..\Data\*.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Inspect.cs" />
     <Compile Include="Repack.cs" />

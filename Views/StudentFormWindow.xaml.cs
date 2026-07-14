@@ -28,7 +28,7 @@ namespace StudentSIS.Views
 
         private void Load()
         {
-            var dt = DB.Query("SELECT * FROM Students WHERE StudentID=@id", null, ("@id", _id));
+            var dt = DB.GetStudent(_id);
             if (dt.Rows.Count == 0) return;
             var r = dt.Rows[0];
 
@@ -87,81 +87,48 @@ namespace StudentSIS.Views
 
             try
             {
-                // NationalID + Phone columns dropped from the form. The columns still
-                // exist in the schema for backward compatibility but no longer written here.
-                string sql = _id == 0
-                    ? @"INSERT INTO Students(
-                          StudentCode, FirstName, LastName, Gender, BirthDate,
-                          BirthVillage, BirthDistrict, BirthProvince,
-                          Village, District, Province,
-                          FatherName, FatherAge, FatherJob, FatherVillage, FatherDistrict, FatherProvince, FatherPhone,
-                          MotherName, MotherAge, MotherJob, MotherVillage, MotherDistrict, MotherProvince, MotherPhone,
-                          ParentName, ParentPhone,
-                          GradeLevel, ClassRoom, AcademicYear, Status, Note)
-                       VALUES(
-                          @code, @fn, @ln, @gd, @bd,
-                          @bvi, @bdi, @bpv,
-                          @vi, @di, @pv,
-                          @faN, @faA, @faJ, @faV, @faC, @faP, @faT,
-                          @maN, @maA, @maJ, @maV, @maC, @maP, @maT,
-                          @pn, @pp,
-                          @gl, @rm, @yr, @st, @nt)"
-                    : @"UPDATE Students SET
-                          StudentCode=@code, FirstName=@fn, LastName=@ln, Gender=@gd,
-                          BirthDate=@bd,
-                          BirthVillage=@bvi, BirthDistrict=@bdi, BirthProvince=@bpv,
-                          Village=@vi, District=@di, Province=@pv,
-                          FatherName=@faN, FatherAge=@faA, FatherJob=@faJ,
-                          FatherVillage=@faV, FatherDistrict=@faC, FatherProvince=@faP, FatherPhone=@faT,
-                          MotherName=@maN, MotherAge=@maA, MotherJob=@maJ,
-                          MotherVillage=@maV, MotherDistrict=@maC, MotherProvince=@maP, MotherPhone=@maT,
-                          ParentName=@pn, ParentPhone=@pp,
-                          GradeLevel=@gl, ClassRoom=@rm, AcademicYear=@yr, Status=@st, Note=@nt
-                       WHERE StudentID=@id";
-
-                var ps = new List<(string, object)>
+                // Map form controls → DTO; DB.SaveStudent owns the SQL.
+                // NationalID + Phone columns were dropped from the form — the
+                // columns still exist in the schema but are no longer written.
+                var dto = new StudentDto
                 {
-                    ("@code", TxtCode.Text.Trim()),
-                    ("@fn",   TxtFirst.Text.Trim()),
-                    ("@ln",   TxtLast.Text.Trim()),
-                    ("@gd",   Gcb(CmbGender)),
-                    ("@bd",   TxtBirth.Text.Trim()),
-                    // Birth place
-                    ("@bvi",  TxtBirthVill.Text.Trim()),
-                    ("@bdi",  TxtBirthCity.Text.Trim()),
-                    ("@bpv",  TxtBirthProv.Text.Trim()),
-                    // Current address
-                    ("@vi",   TxtVillage.Text.Trim()),
-                    ("@di",   TxtDistrict.Text.Trim()),
-                    ("@pv",   TxtProvince.Text.Trim()),
-                    // Father
-                    ("@faN",  TxtFaName.Text.Trim()),
-                    ("@faA",  ParseAge(TxtFaAge.Text)),
-                    ("@faJ",  TxtFaJob.Text.Trim()),
-                    ("@faV",  TxtFaVill.Text.Trim()),
-                    ("@faC",  TxtFaCity.Text.Trim()),
-                    ("@faP",  TxtFaProv.Text.Trim()),
-                    ("@faT",  TxtFaTel.Text.Trim()),
-                    // Mother
-                    ("@maN",  TxtMaName.Text.Trim()),
-                    ("@maA",  ParseAge(TxtMaAge.Text)),
-                    ("@maJ",  TxtMaJob.Text.Trim()),
-                    ("@maV",  TxtMaVill.Text.Trim()),
-                    ("@maC",  TxtMaCity.Text.Trim()),
-                    ("@maP",  TxtMaProv.Text.Trim()),
-                    ("@maT",  TxtMaTel.Text.Trim()),
-                    // Legacy mirrors (so old queries / CSV exports keep showing a parent)
-                    ("@pn",   TxtFaName.Text.Trim()),
-                    ("@pp",   TxtFaTel.Text.Trim()),
-                    // Academic
-                    ("@gl",   Gcb(CmbGrade)),
-                    ("@rm",   Gcb(CmbRoom)),
-                    ("@yr",   Gcb(CmbYear)),
-                    ("@st",   Gcb(CmbStatus)),
-                    ("@nt",   TxtNote.Text.Trim()),
+                    Code       = TxtCode.Text.Trim(),
+                    FirstName  = TxtFirst.Text.Trim(),
+                    LastName   = TxtLast.Text.Trim(),
+                    Gender     = Gcb(CmbGender),
+                    BirthDate  = TxtBirth.Text.Trim(),
+
+                    BirthVillage  = TxtBirthVill.Text.Trim(),
+                    BirthDistrict = TxtBirthCity.Text.Trim(),
+                    BirthProvince = TxtBirthProv.Text.Trim(),
+
+                    Village  = TxtVillage.Text.Trim(),
+                    District = TxtDistrict.Text.Trim(),
+                    Province = TxtProvince.Text.Trim(),
+
+                    FatherName     = TxtFaName.Text.Trim(),
+                    FatherAge      = ParseAge(TxtFaAge.Text),
+                    FatherJob      = TxtFaJob.Text.Trim(),
+                    FatherVillage  = TxtFaVill.Text.Trim(),
+                    FatherDistrict = TxtFaCity.Text.Trim(),
+                    FatherProvince = TxtFaProv.Text.Trim(),
+                    FatherPhone    = TxtFaTel.Text.Trim(),
+
+                    MotherName     = TxtMaName.Text.Trim(),
+                    MotherAge      = ParseAge(TxtMaAge.Text),
+                    MotherJob      = TxtMaJob.Text.Trim(),
+                    MotherVillage  = TxtMaVill.Text.Trim(),
+                    MotherDistrict = TxtMaCity.Text.Trim(),
+                    MotherProvince = TxtMaProv.Text.Trim(),
+                    MotherPhone    = TxtMaTel.Text.Trim(),
+
+                    GradeLevel   = Gcb(CmbGrade),
+                    ClassRoom    = Gcb(CmbRoom),
+                    AcademicYear = Gcb(CmbYear),
+                    Status       = Gcb(CmbStatus),
+                    Note         = TxtNote.Text.Trim(),
                 };
-                if (_id > 0) ps.Add(("@id", _id));
-                DB.Exec(sql, null, ps.ToArray());
+                DB.SaveStudent(_id, dto);
                 DB.Log(_id == 0 ? "AddStudent" : "EditStudent", TxtCode.Text);
                 DialogResult = true; Close();
             }
@@ -178,10 +145,10 @@ namespace StudentSIS.Views
         }
 
         // Age stored as INTEGER; empty / non-numeric → DBNull
-        private static object ParseAge(string s)
+        private static int? ParseAge(string s)
         {
-            if (string.IsNullOrWhiteSpace(s)) return DBNull.Value;
-            return int.TryParse(s.Trim(), out int n) ? (object)n : DBNull.Value;
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            return int.TryParse(s.Trim(), out int n) ? n : (int?)null;
         }
 
         private static void SetCbi(ComboBox cb, string val)

@@ -129,22 +129,16 @@ namespace StudentSIS.Views
         {
             string grade = CmbGrade.SelectedItem?.ToString() ?? "ມ.4";
             string prev  = (CmbSubject.SelectedItem as SubItem)?.Code ?? "";
-            // ANNUAL context only applies to CHA1/LAB1 — academic subjects
-            // don't have a yearly-manual score (their annual is computed from
-            // Sem1 + Sem2 totals). Filter the picker to match.
-            string annualFilter = IsAnnualMode ? "AND SubjectCode IN ('CHA1','LAB1')" : "";
             CmbSubject.Items.Clear();
-            var dt = DB.Query($@"
-                SELECT SubjectID, SubjectCode, SubjectCode||'  '||SubjectName AS D
-                FROM Subjects
-                WHERE (GradeLevel=@g OR GradeLevel IS NULL OR GradeLevel='') {annualFilter}
-                ORDER BY SortOrder",
-                null, ("@g", grade));
+            // ANNUAL mode narrows the picker to CHA1/LAB1 — academic subjects
+            // don't have a yearly-manual score (their annual is computed from
+            // Sem1 + Sem2 totals).
+            var dt = DB.GetSubjectsForGrade(grade, evalOnly: IsAnnualMode);
             foreach (DataRow r in dt.Rows)
                 CmbSubject.Items.Add(new SubItem(
                     Convert.ToInt32(r["SubjectID"]),
                     r["SubjectCode"].ToString()!,
-                    r["D"].ToString()!));
+                    r["Display"].ToString()!));
             // Try to preserve the previous selection if it still exists for the new grade.
             for (int i = 0; i < CmbSubject.Items.Count; i++)
                 if (((SubItem)CmbSubject.Items[i]).Code == prev) { CmbSubject.SelectedIndex = i; return; }
@@ -279,33 +273,12 @@ namespace StudentSIS.Views
             ColMid.Header   = midHdr;
             ColEval.Header  = IsAnnualMode ? "ຄະແນນປະຈຳປີ (/10)" : "ຄະແນນ (/10)";
 
-            string statusFilter = status == "ທັງໝົດ" ? "" : "AND s.Status=@st";
-            var ps = new System.Collections.Generic.List<(string, object)> {
-                ("@subId", sub.Id), ("@year", year), ("@sem", sem),
-                ("@grade", grade), ("@room", room)
-            };
-            if (status != "ທັງໝົດ") ps.Add(("@st", status));
-
-            // One query pulls EVERY active student in (year, grade, room)
-            // joined to their enrollment + score row for this subject + sem.
-            // LEFT JOIN on Enrollments + Scores so students without an
-            // enrollment still appear (with EnrollID=0) — Save then skips
-            // them with a helpful note rather than silently dropping.
-            var dt = DB.Query($@"
-                SELECT s.StudentID, s.StudentCode, s.FirstName||' '||s.LastName AS FullName,
-                       IFNULL(e.EnrollID,0)         AS EnrollID,
-                       IFNULL(sc.ScoreID,0)         AS ScoreID,
-                       IFNULL(sc.MidScore,0)        AS MidScore,
-                       IFNULL(sc.FinalScore,0)      AS FinalScore
-                FROM Students s
-                LEFT JOIN Enrollments e ON e.StudentID=s.StudentID
-                                       AND e.SubjectID=@subId
-                                       AND e.AcademicYear=@year
-                                       AND e.Semester=@sem
-                LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                WHERE s.GradeLevel=@grade AND s.ClassRoom=@room {statusFilter}
-                ORDER BY s.StudentCode",
-                null, ps.ToArray());
+            // One query pulls EVERY student in (year, grade, room) joined to
+            // their enrollment + score row for this subject + sem. Students
+            // without an enrollment still appear (EnrollID=0) — Save then
+            // skips them with a helpful note rather than silently dropping.
+            var dt = DB.GetSemesterScoreRoster(sub.Id, year, sem, grade, room,
+                status == "ທັງໝົດ" ? null : status);
 
             _rows.Clear();
             bool isEval = sub.Code == "CHA1" || sub.Code == "LAB1";
@@ -506,25 +479,9 @@ namespace StudentSIS.Views
                         if (row.EnrollID == 0) { skipped++; continue; }
                         row.FinalScore = Math.Max(0, Math.Min(10, row.FinalScore));
                         row.Recalc();
-                        if (row.ScoreID == 0)
-                        {
-                            DB.ExecTx(@"INSERT INTO Scores(EnrollID,MidScore,FinalScore,TotalScore,Level)
-                                        VALUES(@e,@m,@f,@t,@l)",
-                                conn, tx,
-                                ("@e", row.EnrollID), ("@m", row.MidScore),
-                                ("@f", row.FinalScore), ("@t", row.TotalScore),
-                                ("@l", row.Level));
-                        }
-                        else
-                        {
-                            DB.ExecTx(@"UPDATE Scores
-                                        SET FinalScore=@f, TotalScore=@t, Level=@l,
-                                            UpdatedAt=datetime('now','localtime')
-                                        WHERE ScoreID=@id",
-                                conn, tx,
-                                ("@f", row.FinalScore), ("@t", row.TotalScore),
-                                ("@l", row.Level), ("@id", row.ScoreID));
-                        }
+                        DB.SaveSemesterScore(row.ScoreID, row.EnrollID,
+                            row.MidScore, row.FinalScore, row.TotalScore, row.Level,
+                            conn, tx);
                         saved++;
                     }
                 }

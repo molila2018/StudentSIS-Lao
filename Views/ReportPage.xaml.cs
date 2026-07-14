@@ -115,21 +115,9 @@ namespace StudentSIS.Views
 
             // Always narrow by grade + room so the student dropdown matches the class
             // filters. Status filter is layered on top (default 'ກຳລັງຮຽນ'; switching
-            // to 'ຈົບ' surfaces graduates from that same class+room). This applies to
-            // every report type that shows the student picker — Enrollment Agreement,
-            // Transcript, and Individual — keeping behaviour consistent.
-            var sb = new System.Text.StringBuilder(@"
-                SELECT StudentID,
-                       StudentCode || '  ·  ' || FirstName || ' ' || LastName ||
-                       '  ·  ' || GradeLevel || '/' || IFNULL(ClassRoom,'-') AS D
-                FROM Students
-                WHERE GradeLevel=@g AND ClassRoom=@r");
-            var ps = new System.Collections.Generic.List<(string, object)> {
-                ("@g", grade), ("@r", room)
-            };
-            if (status != "ທັງໝົດ") { sb.Append(" AND Status=@st"); ps.Add(("@st", status)); }
-            sb.Append(" ORDER BY StudentCode");
-            var dt = DB.Query(sb.ToString(), null, ps.ToArray());
+            // to 'ຈົບ' surfaces graduates from that same class+room).
+            var dt = DB.GetStudentPickerForClass(grade, room,
+                status == "ທັງໝົດ" ? null : status);
 
             CmbStudent.DisplayMemberPath = "D";
             CmbStudent.SelectedValuePath = "StudentID";
@@ -850,17 +838,7 @@ namespace StudentSIS.Views
                     // Academic subjects: per-month sum from MonthlyAssessments (auto-calculated
                     // Activity + Discipline + Homework). CHA1/LAB1 are EXCLUDED from this query
                     // and read separately from EvaluationScores(Month{N}) — never derived.
-                    var mDt = DB.Query(@"
-                        SELECT sub.SubjectCode,
-                               IFNULL(ma.ActivityScore,0)+IFNULL(ma.DisciplineScore,0)+IFNULL(ma.HomeworkScore,0) AS V,
-                               (ma.ActivityScore IS NOT NULL OR ma.DisciplineScore IS NOT NULL OR ma.HomeworkScore IS NOT NULL) AS HasRow
-                        FROM Enrollments e
-                        JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                        LEFT JOIN MonthlyAssessments ma ON ma.EnrollID=e.EnrollID AND ma.Month=@m
-                        WHERE e.StudentID=@s AND e.AcademicYear=@y AND e.Semester=@sm
-                          AND sub.SubjectCode NOT IN ('CHA1','LAB1')",
-                        null, ("@s", sid), ("@y", year), ("@m", scope.Value),
-                              ("@sm", DB.SemesterForMonth(scope.Value)));
+                    var mDt = DB.GetStudentMonthlySubjectTotals(sid, year, scope.Value);
                     foreach (DataRow r in mDt.Rows)
                     {
                         string code = r["SubjectCode"].ToString()!;
@@ -879,15 +857,7 @@ namespace StudentSIS.Views
 
                 case "S":
                     // Semester academic score = Scores.TotalScore. CHA1/LAB1 from EvaluationScores.
-                    var sDt = DB.Query(@"
-                        SELECT sub.SubjectCode, sc.TotalScore AS V,
-                               (sc.ScoreID IS NOT NULL) AS HasRow
-                        FROM Enrollments e
-                        JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                        LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                        WHERE e.StudentID=@s AND e.AcademicYear=@y AND e.Semester=@sm
-                          AND sub.SubjectCode NOT IN ('CHA1','LAB1')",
-                        null, ("@s", sid), ("@y", year), ("@sm", scope.Value));
+                    var sDt = DB.GetStudentSemesterSubjectTotals(sid, year, scope.Value);
                     foreach (DataRow r in sDt.Rows)
                     {
                         string code = r["SubjectCode"].ToString()!;
@@ -901,15 +871,7 @@ namespace StudentSIS.Views
 
                 case "A":
                     // Annual academic = average of Sem1+Sem2 TotalScore. CHA1/LAB1 from ANNUAL eval.
-                    var aDt = DB.Query(@"
-                        SELECT sub.SubjectCode, IFNULL(sc.TotalScore,0) AS V
-                        FROM Enrollments e
-                        JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                        LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                        WHERE e.StudentID=@s AND e.AcademicYear=@y
-                          AND sub.SubjectCode NOT IN ('CHA1','LAB1')
-                          AND sc.ScoreID IS NOT NULL",
-                        null, ("@s", sid), ("@y", year));
+                    var aDt = DB.GetStudentAnnualSubjectTotals(sid, year);
                     var bag = new Dictionary<string, List<double>>();
                     foreach (DataRow r in aDt.Rows)
                     {
@@ -988,17 +950,7 @@ namespace StudentSIS.Views
             switch (scope.Kind)
             {
                 case "M":
-                    var mDt = DB.Query(@"
-                        SELECT sub.SubjectCode,
-                               IFNULL(ma.ActivityScore,0)+IFNULL(ma.DisciplineScore,0)+IFNULL(ma.HomeworkScore,0) AS V,
-                               (ma.MonthlyID IS NOT NULL) AS HasRow
-                        FROM Enrollments e
-                        JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                        LEFT JOIN MonthlyAssessments ma ON ma.EnrollID=e.EnrollID AND ma.Month=@m
-                        WHERE e.StudentID=@s AND e.AcademicYear=@y AND e.Semester=@sm
-                          AND sub.SubjectCode NOT IN ('CHA1','LAB1')",
-                        null, ("@s", sid), ("@y", year), ("@m", scope.Value),
-                              ("@sm", DB.SemesterForMonth(scope.Value)));
+                    var mDt = DB.GetStudentMonthlySubjectTotals(sid, year, scope.Value);
                     foreach (DataRow r in mDt.Rows)
                     {
                         bool hasRow = Convert.ToInt32(r["HasRow"]) != 0;
@@ -1006,28 +958,13 @@ namespace StudentSIS.Views
                     }
                     break;
                 case "S":
-                    var sDt = DB.Query(@"
-                        SELECT sc.TotalScore AS V, (sc.ScoreID IS NOT NULL) AS HasRow
-                        FROM Enrollments e
-                        JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                        LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                        WHERE e.StudentID=@s AND e.AcademicYear=@y AND e.Semester=@sm
-                          AND sub.SubjectCode NOT IN ('CHA1','LAB1')",
-                        null, ("@s", sid), ("@y", year), ("@sm", scope.Value));
+                    var sDt = DB.GetStudentSemesterSubjectTotals(sid, year, scope.Value);
                     foreach (DataRow r in sDt.Rows)
                         Add(Convert.ToInt32(r["HasRow"]) != 0 && r["V"] != DBNull.Value
                               ? Convert.ToDouble(r["V"]) : (double?)null);
                     break;
                 case "A":
-                    var aDt = DB.Query(@"
-                        SELECT sub.SubjectCode, IFNULL(sc.TotalScore,0) AS V
-                        FROM Enrollments e
-                        JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                        LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                        WHERE e.StudentID=@s AND e.AcademicYear=@y
-                          AND sub.SubjectCode NOT IN ('CHA1','LAB1')
-                          AND sc.ScoreID IS NOT NULL",
-                        null, ("@s", sid), ("@y", year));
+                    var aDt = DB.GetStudentAnnualSubjectTotals(sid, year);
                     var bag = new Dictionary<string, List<double>>();
                     foreach (DataRow r in aDt.Rows)
                     {
@@ -1050,8 +987,8 @@ namespace StudentSIS.Views
             if (_subjectNameCache == null)
             {
                 _subjectNameCache = new Dictionary<string, string>();
-                foreach (DataRow r in DB.Query("SELECT SubjectCode, SubjectName FROM Subjects").Rows)
-                    _subjectNameCache[r["SubjectCode"].ToString()!] = r["SubjectName"].ToString()!;
+                foreach (var kv in DB.GetSubjectNameMap())
+                    _subjectNameCache[kv.Key] = kv.Value;
             }
             return _subjectNameCache.TryGetValue(code, out var n) ? n : code;
         }
@@ -1187,10 +1124,7 @@ namespace StudentSIS.Views
             // Pull this student's name + code only. Grade/room come from the caller
             // (historical reconstruction) and are stuffed into a synthetic DataRow so
             // the existing BuildIndividualXlsx can be reused unchanged.
-            var stuDt = DB.Query(@"SELECT StudentCode, FirstName||' '||LastName AS FullName,
-                                          IFNULL(Status,'') AS Status
-                                   FROM Students WHERE StudentID=@id",
-                null, ("@id", sid));
+            var stuDt = DB.GetStudentHeader(sid);
             if (stuDt.Rows.Count == 0)
                 throw new InvalidOperationException("ບໍ່ພົບຂໍ້ມູນນັກຮຽນ");
 
@@ -1236,20 +1170,10 @@ namespace StudentSIS.Views
             // One-shot bulk lookup: per (student, subject) monthly total for everyone
             // in the historical cohort. CHA1/LAB1 are included — they're rendered
             // raw in the template's U/V columns and excluded from the SUM/AVG range.
-            var idList = new List<string>();
-            foreach (DataRow rr in roster.Rows) idList.Add(rr["StudentID"].ToString()!);
-            string idCsv = idList.Count > 0 ? string.Join(",", idList) : "0";
+            var idList = new List<int>();
+            foreach (DataRow rr in roster.Rows) idList.Add(Convert.ToInt32(rr["StudentID"]));
 
-            var dt = DB.Query($@"
-                SELECT e.StudentID, sub.SubjectCode,
-                       (IFNULL(ma.ActivityScore,0)+IFNULL(ma.DisciplineScore,0)+IFNULL(ma.HomeworkScore,0)) AS Total,
-                       (ma.MonthlyID IS NOT NULL) AS HasRow
-                FROM Enrollments e
-                JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                LEFT JOIN MonthlyAssessments ma ON ma.EnrollID=e.EnrollID AND ma.Month=@m
-                WHERE e.AcademicYear=@y AND e.Semester=@sm
-                  AND e.StudentID IN ({idCsv})",
-                null, ("@m", month), ("@y", year), ("@sm", sem));
+            var dt = DB.GetClassMonthlyTotalsBulk(idList, year, sem, month);
 
             var scoreMap = new Dictionary<(int, string), double>();
             foreach (DataRow rr in dt.Rows)
@@ -1265,9 +1189,7 @@ namespace StudentSIS.Views
             // Sort roster by descending academic monthly sum (CHA/LAB excluded from sum).
             // Failed students (any academic <PassScore) sort by sum like everyone else;
             // their "ຕົກ" rank is rendered by the template's RANK.EQ-with-COUNTIF formula.
-            var academicCodes = new HashSet<string>();
-            foreach (DataRow rr in DB.Query("SELECT SubjectCode FROM Subjects WHERE SubjectCode NOT IN ('CHA1','LAB1')").Rows)
-                academicCodes.Add(rr["SubjectCode"].ToString()!);
+            var academicCodes = new HashSet<string>(DB.GetAcademicSubjectCodes());
             var sumBySid = new Dictionary<int, double>();
             foreach (DataRow rr in roster.Rows)
             {
@@ -1318,10 +1240,7 @@ namespace StudentSIS.Views
             string historicalGrade, string historicalRoom,
             string outPath, out string title)
         {
-            var stuDt = DB.Query(@"SELECT StudentCode, FirstName||' '||LastName AS FullName,
-                                          IFNULL(Status,'') AS Status
-                                   FROM Students WHERE StudentID=@id",
-                null, ("@id", sid));
+            var stuDt = DB.GetStudentHeader(sid);
             if (stuDt.Rows.Count == 0)
                 throw new InvalidOperationException("ບໍ່ພົບຂໍ້ມູນນັກຮຽນ");
 
@@ -1342,10 +1261,7 @@ namespace StudentSIS.Views
             string historicalGrade, string historicalRoom,
             string outPath, out string title)
         {
-            var stuDt = DB.Query(@"SELECT StudentCode, FirstName||' '||LastName AS FullName,
-                                          IFNULL(Status,'') AS Status
-                                   FROM Students WHERE StudentID=@id",
-                null, ("@id", sid));
+            var stuDt = DB.GetStudentHeader(sid);
             if (stuDt.Rows.Count == 0)
                 throw new InvalidOperationException("ບໍ່ພົບຂໍ້ມູນນັກຮຽນ");
 
@@ -1395,20 +1311,11 @@ namespace StudentSIS.Views
             if (sem != 1 && sem != 2)
                 throw new ArgumentException("sem must be 1 or 2", nameof(sem));
 
-            var idList = new List<string>();
-            foreach (DataRow rr in roster.Rows) idList.Add(rr["StudentID"].ToString()!);
-            string idCsv = idList.Count > 0 ? string.Join(",", idList) : "0";
+            var idList = new List<int>();
+            foreach (DataRow rr in roster.Rows) idList.Add(Convert.ToInt32(rr["StudentID"]));
 
             // Academic per (student, subject) — CHA1/LAB1 excluded by the join filter.
-            var acDt = DB.Query($@"
-                SELECT e.StudentID, sub.SubjectCode, IFNULL(sc.TotalScore,0) AS Total
-                FROM Enrollments e
-                JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                WHERE e.AcademicYear=@y AND e.Semester=@sm
-                  AND sub.SubjectCode NOT IN ('CHA1','LAB1')
-                  AND e.StudentID IN ({idCsv})",
-                null, ("@y", year), ("@sm", sem));
+            var acDt = DB.GetClassSemesterTotalsBulk(idList, year, sem);
             var academic = new Dictionary<(int, string), double>();
             foreach (DataRow r in acDt.Rows)
             {
@@ -1417,14 +1324,7 @@ namespace StudentSIS.Views
             }
 
             // CHA1/LAB1 manual scores for this context.
-            string ctx = sem == 1 ? "SEM1" : "SEM2";
-            var evDt = DB.Query($@"
-                SELECT StudentID, SubjectCode, Score
-                FROM EvaluationScores
-                WHERE AcademicYear=@y AND Context=@c
-                  AND SubjectCode IN ('CHA1','LAB1')
-                  AND StudentID IN ({idCsv})",
-                null, ("@y", year), ("@c", ctx));
+            var evDt = DB.GetClassEvalScoresBulk(idList, year, sem == 1 ? "SEM1" : "SEM2");
             var evalMap = new Dictionary<(int, string), double>();
             foreach (DataRow r in evDt.Rows)
             {
@@ -1470,21 +1370,11 @@ namespace StudentSIS.Views
             string year, string grade, string room,
             DataTable roster, string outPath, out string title)
         {
-            var idList = new List<string>();
-            foreach (DataRow rr in roster.Rows) idList.Add(rr["StudentID"].ToString()!);
-            string idCsv = idList.Count > 0 ? string.Join(",", idList) : "0";
+            var idList = new List<int>();
+            foreach (DataRow rr in roster.Rows) idList.Add(Convert.ToInt32(rr["StudentID"]));
 
             // Both semesters' academic scores — collect, then average per (student, subject).
-            var acDt = DB.Query($@"
-                SELECT e.StudentID, sub.SubjectCode, IFNULL(sc.TotalScore,0) AS Total
-                FROM Enrollments e
-                JOIN Subjects sub ON sub.SubjectID=e.SubjectID
-                LEFT JOIN Scores sc ON sc.EnrollID=e.EnrollID
-                WHERE e.AcademicYear=@y
-                  AND sub.SubjectCode NOT IN ('CHA1','LAB1')
-                  AND sc.ScoreID IS NOT NULL
-                  AND e.StudentID IN ({idCsv})",
-                null, ("@y", year));
+            var acDt = DB.GetClassAnnualTotalsBulk(idList, year);
             var bag = new Dictionary<(int, string), List<double>>();
             foreach (DataRow r in acDt.Rows)
             {
@@ -1498,13 +1388,7 @@ namespace StudentSIS.Views
             foreach (var kv in bag) academic[kv.Key] = Math.Round(kv.Value.Average(), 2);
 
             // CHA1/LAB1 annual manual scores.
-            var evDt = DB.Query($@"
-                SELECT StudentID, SubjectCode, Score
-                FROM EvaluationScores
-                WHERE AcademicYear=@y AND Context='ANNUAL'
-                  AND SubjectCode IN ('CHA1','LAB1')
-                  AND StudentID IN ({idCsv})",
-                null, ("@y", year));
+            var evDt = DB.GetClassEvalScoresBulk(idList, year, "ANNUAL");
             var evalMap = new Dictionary<(int, string), double>();
             foreach (DataRow r in evDt.Rows)
             {
@@ -1657,7 +1541,7 @@ namespace StudentSIS.Views
                 return;
             }
             int sid = Convert.ToInt32(CmbStudent.SelectedValue);
-            var sr = DB.Query(@"SELECT * FROM Students WHERE StudentID=@id", null, ("@id", sid));
+            var sr = DB.GetStudent(sid);
             if (sr.Rows.Count == 0)
             {
                 MessageBox.Show("ບໍ່ພົບຂໍ້ມູນນັກຮຽນ", "ຜິດພາດ");
@@ -1817,7 +1701,7 @@ namespace StudentSIS.Views
                 return;
             }
             int sid = Convert.ToInt32(CmbStudent.SelectedValue);
-            var sr = DB.Query(@"SELECT * FROM Students WHERE StudentID=@id", null, ("@id", sid));
+            var sr = DB.GetStudent(sid);
             if (sr.Rows.Count == 0)
             {
                 MessageBox.Show("ບໍ່ພົບຂໍ້ມູນນັກຮຽນ", "ຜິດພາດ",
